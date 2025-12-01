@@ -26,6 +26,9 @@ final class GeoManagerTest extends TestCase
         self::assertSame([], $manager->districts());
         self::assertSame([], $manager->upazilas());
         self::assertSame([], $manager->unions());
+        
+        // Test aggregation on empty data
+        self::assertSame(0, $manager->countUpazilasByDivisionId(1));
     }
 }
 

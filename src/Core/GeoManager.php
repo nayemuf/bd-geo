@@ -80,9 +80,9 @@ final class GeoManager
     {
         return array_map(
             static fn (array $row): Union => new Union(
-                (int) $row['id'],
-                (int) $row['upazila_id'],
-                (string) $row['name_en'],
+                (int) ($row['id'] ?? 0),
+                (int) ($row['upazila_id'] ?? 0),
+                (string) ($row['name_en'] ?? ''),
                 $row['name_bn'] ?? null,
                 $row['slug'] ?? null,
                 $row['postal_code'] ?? null,
@@ -193,9 +193,9 @@ final class GeoManager
         }
 
         return new Union(
-            (int) $row['id'],
-            (int) $row['upazila_id'],
-            (string) $row['name_en'],
+            (int) ($row['id'] ?? 0),
+            (int) ($row['upazila_id'] ?? 0),
+            (string) ($row['name_en'] ?? ''),
             $row['name_bn'] ?? null,
             $row['slug'] ?? null,
             $row['postal_code'] ?? null,
@@ -204,6 +204,78 @@ final class GeoManager
             $row['timezone'] ?? null,
             $row['geojson'] ?? null,
         );
+    }
+
+    /**
+     * Reverse lookup: Get the parent Division of a District.
+     */
+    public function findDivisionByDistrictId(int $districtId): ?Division
+    {
+        $district = $this->findDistrict($districtId);
+
+        if ($district === null) {
+            return null;
+        }
+
+        return $this->findDivision($district->divisionId);
+    }
+
+    /**
+     * Reverse lookup: Get the parent District of an Upazila.
+     */
+    public function findDistrictByUpazilaId(int $upazilaId): ?District
+    {
+        $upazila = $this->findUpazila($upazilaId);
+
+        if ($upazila === null) {
+            return null;
+        }
+
+        return $this->findDistrict($upazila->districtId);
+    }
+
+    /**
+     * Reverse lookup: Get the parent Upazila of a Union.
+     */
+    public function findUpazilaByUnionId(int $unionId): ?Upazila
+    {
+        $union = $this->findUnion($unionId);
+
+        if ($union === null) {
+            return null;
+        }
+
+        return $this->findUpazila($union->upazilaId);
+    }
+
+    /**
+     * Aggregate: Count all upazilas under a specific division.
+     */
+    public function countUpazilasByDivisionId(int $divisionId): int
+    {
+        $districts = $this->districtsByDivisionId($divisionId);
+        $count = 0;
+
+        foreach ($districts as $district) {
+            $count += count($this->upazilasByDistrictId($district->id));
+        }
+
+        return $count;
+    }
+    /**
+     * Aggregate: Count all upazilas under a specific district.
+     */
+    public function countUpazilasByDistrictId(int $districtId): int
+    {
+        return count($this->upazilasByDistrictId($districtId));
+    }
+
+    /**
+     * Aggregate: Count all unions under a specific upazila.
+     */
+    public function countUnionsByUpazilaId(int $upazilaId): int
+    {
+        return count($this->unionsByUpazilaId($upazilaId));
     }
 
     /**
