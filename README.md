@@ -1,17 +1,31 @@
-## 🇧🇩 BD Geo – Bangladesh Administrative Geodata Package
+# 🇧🇩 BD Geo – Bangladesh Administrative Geodata Package
 
-Universal, framework-agnostic PHP package (Laravel-ready) that ships complete administrative geodata of Bangladesh in a clean, developer-friendly format.
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/nayemuf/bd-geo.svg?style=flat-square)](https://packagist.org/packages/nayemuf/bd-geo)
+[![Total Downloads](https://img.shields.io/packagist/dt/nayemuf/bd-geo.svg?style=flat-square)](https://packagist.org/packages/nayemuf/bd-geo)
+[![License](https://img.shields.io/packagist/l/nayemuf/bd-geo.svg?style=flat-square)](https://packagist.org/packages/nayemuf/bd-geo)
 
-### Features
+**Universal, framework-agnostic PHP package** (Laravel-ready) that ships complete administrative geodata of Bangladesh in a clean, developer-friendly format.
 
-- **Full hierarchy**: Divisions, Districts, Upazilas/Thanas, Unions  
-- **Multiple formats**: JSON files, PHP arrays, optional Laravel seeders  
-- **Query helpers**: get children by parent, lookup by ID, simple fuzzy search by name  
-- **Framework-agnostic core**: works with any Composer-based PHP project  
-- **First-class Laravel support**: auto-discovery, facade, config, and publishable seeders  
-- **Pro-ready fields on unions**: postal code, latitude/longitude, timezone, GeoJSON
+Eliminate the hassle of manually collecting or scraping division, district, and upazila data. **BD Geo** provides a standardized dataset you can use instantly in any PHP application.
 
-## Installation
+---
+
+## 🚀 Features
+
+- **🇧🇩 Complete Hierarchy**: Divisions (8) → Districts (64) → Upazilas (490+) → Unions (4,500+)
+- **🔌 Framework Agnostic**: Works with **Laravel**, Symfony, CodeIgniter, or Vanilla PHP.
+- **💡 Developer Friendly**:
+  - **Laravel Facade**: `BdGeo::divisions()`
+  - **Helpers**: Find by ID, get children (e.g., districts of a division), reverse lookup (find parent).
+  - **Search**: Simple case-insensitive name search.
+  - **Aggregates**: Count upazilas per district/division.
+- **📦 Data Included**: Ships with optimized JSON data files (no database required to start).
+- **💾 Database Ready**: Includes **Seeders** to import data into your own MySQL/PostgreSQL tables if needed.
+- **⚡ Pro-Ready**: Union data structure includes placeholders for **Postal Codes**, **Lat/Long**, and **GeoJSON**.
+
+---
+
+## 📦 Installation
 
 Install via Composer:
 
@@ -19,90 +33,95 @@ Install via Composer:
 composer require nayemuf/bd-geo
 ```
 
-The core library works in any PHP 8.1+ application. In Laravel, the service provider and facade are auto-discovered.
+### 🔧 Laravel Configuration
 
-## Data model
+The package uses **auto-discovery**. The Service Provider and `BdGeo` facade are registered automatically.
 
-The package ships JSON data under `resources/data/`:
-
-- `divisions.json`
-- `districts.json`
-- `upazilas.json`
-- `unions.json`
-
-Each file contains a flat array of records:
-
-- **Division**
-  - `id`, `name_en`, `name_bn`, `slug`
-- **District**
-  - `id`, `division_id`, `name_en`, `name_bn`, `slug`
-- **Upazila**
-  - `id`, `district_id`, `name_en`, `name_bn`, `slug`
-- **Union** (extended / Pro-ready)
-  - `id`, `upazila_id`, `name_en`, `name_bn`, `slug`, `postal_code`, `lat`, `lng`, `timezone`, `geojson`
-
-You can replace or extend these JSONs with your own data as long as you keep the same keys.
-
-## Usage in Laravel
-
-After installing the package:
-
-- (Optional) publish config and seeders:
+**Optional**: Publish the configuration and seeders.
 
 ```bash
+# Publish Config (config/bd-geo.php)
 php artisan vendor:publish --tag=bd-geo-config
+
+# Publish Seeders (database/seeders/)
 php artisan vendor:publish --tag=bd-geo-seeders
 ```
 
-### Facade API
+---
 
-The package registers a `BdGeo` facade. Common examples:
+## 📖 Usage
+
+### 1. Retrieving Data (Facade)
+
+Access data instantly without querying a database:
 
 ```php
 use BdGeo;
 
-// All entities
+// ✅ Get All Records
 $divisions = BdGeo::divisions();
 $districts = BdGeo::districts();
 $upazilas  = BdGeo::upazilas();
-$unions    = BdGeo::unions();
+$unions    = BdGeo::unions(); // Warning: Large dataset
 
-// Hierarchy helpers
-$districtsInDhaka   = BdGeo::districtsByDivisionId(3);
-$upazilasInDhaka    = BdGeo::upazilasByDistrictId(18);
-$unionsInUpazila    = BdGeo::unionsByUpazilaId(1801);
+// ✅ Hierarchical Data (Children)
+$districtsInDhaka = BdGeo::districtsByDivisionId(3); // 3 = Dhaka Division ID
+$upazilasInDhaka  = BdGeo::upazilasByDistrictId(18); // 18 = Dhaka District ID
+$unionsInUpazila  = BdGeo::unionsByUpazilaId(1801);
 
-// Single lookups
-$dhakaDivision = BdGeo::findDivision(3);
-$someDistrict  = BdGeo::findDistrict(18);
-$someUpazila   = BdGeo::findUpazila(1801);
-$someUnion     = BdGeo::findUnion(10001);
+// ✅ Reverse Lookup (Parents)
+$parentDivision = BdGeo::findDivisionByDistrictId(18); // Returns 'Dhaka' Division
+$parentDistrict = BdGeo::findDistrictByUpazilaId(1801); // Returns 'Dhaka' District
 
-// Simple fuzzy search (case-insensitive contains on English name)
-$matchingDistricts = BdGeo::searchDistricts('Dhaka');
+// ✅ Find Single Record
+$dhaka = BdGeo::findDivision(3);
+$dhanmondi = BdGeo::findUpazila(1801);
+
+// ✅ Search (Case-insensitive)
+$results = BdGeo::searchDistricts('dhaka'); 
+
+// ✅ Aggregation (Counts)
+$totalUpazilas = BdGeo::countUpazilasByDivisionId(3);
 ```
 
-> Note: The above methods read directly from the JSON data and do **not** require database tables or seeders.
+### 2. Using in Vanilla PHP
 
-### Optional: Seeding into your database
+```php
+require 'vendor/autoload.php';
 
-If you want to persist the data in your own tables (for joins, reporting, etc.):
+use Nayemuf\BdGeo\Core\GeoManager;
+use Nayemuf\BdGeo\Core\Repositories\DivisionRepository;
+use Nayemuf\BdGeo\Core\Repositories\DistrictRepository;
+use Nayemuf\BdGeo\Core\Repositories\UpazilaRepository;
+use Nayemuf\BdGeo\Core\Repositories\UnionRepository;
 
-1. Publish seeders:
+// Instantiate the Manager
+$geo = new GeoManager(
+    new DivisionRepository(),
+    new DistrictRepository(),
+    new UpazilaRepository(),
+    new UnionRepository()
+);
 
+// Use it
+$divisions = $geo->divisions();
+print_r($divisions);
+```
+
+---
+
+## 💾 Database Seeding (Optional)
+
+By default, the package reads from JSON files. If you need the data in your own database tables (e.g., for foreign keys or complex joins):
+
+1. **Publish Seeders** (if not already done):
    ```bash
    php artisan vendor:publish --tag=bd-geo-seeders
    ```
 
-2. Create migrations for the target tables (defaults in `config/bd-geo.php`):
+2. **Create Tables**: Ensure you have tables matching the config (defaults: `bd_divisions`, `bd_districts`, `bd_upazilas`, `bd_unions`). *Migrations are not included to give you full control over your schema.*
 
-   - `bd_divisions`
-   - `bd_districts`
-   - `bd_upazilas`
-   - `bd_unions`
-
-3. Run seeders as needed, for example:
-
+3. **Run Seeders**:
    ```bash
    php artisan db:seed --class=BdGeoDivisionSeeder
    php artisan db:seed --class=BdGeoDistrictSeeder
@@ -110,38 +129,33 @@ If you want to persist the data in your own tables (for joins, reporting, etc.):
    php artisan db:seed --class=BdGeoUnionSeeder
    ```
 
-The seeders read from the same JSON files and upsert into your tables using the configured names.
+---
 
-## Usage in non-Laravel PHP
+## 🗺 Data Model
 
-You can instantiate `GeoManager` directly and wire the repositories yourself:
+The package uses a normalized ID structure.
 
-```php
-use Nayemuf\BdGeo\Core\GeoManager;
-use Nayemuf\BdGeo\Core\Repositories\DivisionRepository;
-use Nayemuf\BdGeo\Core\Repositories\DistrictRepository;
-use Nayemuf\BdGeo\Core\Repositories\UpazilaRepository;
-use Nayemuf\BdGeo\Core\Repositories\UnionRepository;
+- **Division**: `id` (1-8), `name_en`, `name_bn`
+- **District**: `id` (1-64), `division_id`, `name_en`, `name_bn`
+- **Upazila**: `id`, `district_id`, `name_en`, `name_bn`
+- **Union**: `id`, `upazila_id`, `name_en`, `name_bn`, `postal_code`, `lat`, `lng`
 
-$geo = new GeoManager(
-    new DivisionRepository(),
-    new DistrictRepository(),
-    new UpazilaRepository(),
-    new UnionRepository(),
-);
+---
 
-$divisions = $geo->divisions();
-```
+## 🤝 Contributing
 
-## Versioning & data updates
+Contributions are welcome! If you notice any incorrect spellings or missing unions, please open a Pull Request updating the JSON files in `resources/data/`.
 
-- **Code** follows semantic versioning (`MAJOR.MINOR.PATCH`).
-- **Data changes** (e.g., government renames or boundary changes) are shipped as new releases.  
-  - Backward-incompatible ID or structure changes will trigger a **major** version bump.
+1. Fork the repository.
+2. Create a new branch.
+3. Update the JSON files.
+4. Submit a PR.
 
-## License
+---
 
-This package is open-sourced software licensed under the **MIT license**.
+## 📄 License
 
-For deeper technical details and roadmap, see `docs/srs.md`.
+This package is open-sourced software licensed under the [MIT license](LICENSE).
+
+**Built with ❤️ for the Bangladeshi Developer Community.**
 
